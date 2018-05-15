@@ -1,0 +1,1165 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Creates a Load Balancer Sandwich, External ALB and Internal ALB, with two firewalls and two web servers",
+  	"Parameters": {
+  		"WebInstanceType": {
+	      "Description": "WebServer EC2 instance type",
+	      "Type": "String",
+	      "Default": "t2.micro",
+	      "AllowedValues": [
+	        "t1.micro",
+	        "t2.micro",
+	        "t2.small",
+	        "t2.medium",
+	        "m1.large",
+	        "m3.xlarge",
+	        "c4.2xlarge"
+	      ],
+	      "ConstraintDescription": "must be a valid EC2 instance type."
+    	},
+        "KeyName" : {
+       		"Description" : "Amazon EC2 Key Pair",
+       		"Type" : "AWS::EC2::KeyPair::KeyName"
+    	},
+        "VPCName" : {
+	      "Description" : "Name of the newly created VPC",
+	      "Type" : "String",
+	      "MinLength": "6",
+	      "MaxLength": "75",
+	      "Default" : "panwVPC"
+    	},
+    	"VPCCIDR": {
+	      "Type": "String",
+	      "Default": "192.168.0.0/16",
+	      "Description": "Enter the VPC CIDR that you want to use",
+	      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+	      "ConstraintDescription" : "must be a valid CIDR range of the form x.x.x.x/x."
+    	},
+    	"VpcAzs": {
+      		"Type": "List<AWS::EC2::AvailabilityZone::Name>",
+      		"Description": "Select 2 AZs"
+    	},
+	    "ALBIntName": {
+	      	"Type" : "String",
+	      	"Description": "Enter the name to associate with the NLB",
+		    "Default": "alb-int",
+		    "MinLength" : "3",
+		    "MaxLength" : "120"
+	    },
+	    "ALBExtName": {
+	      	"Type" : "String",
+	      	"Description": "Enter the name to associate with the NLB",
+		    "Default": "alb-ext",
+		    "MinLength" : "3",
+		    "MaxLength" : "120"
+	    },
+	    "SSHLocation" : {
+	      	"Description" : "Restrict SSH & HTTPS access to the Web Servers (by default can be accessed from anywhere)",
+	      	"Type" : "String",
+	      	"MinLength": "9",
+	      	"MaxLength": "18",
+	      	"Default" : "0.0.0.0/0",
+	      	"AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+	      	"ConstraintDescription" : "must be a valid CIDR range of the form x.x.x.x/x."
+	    },
+	    "MgmtSubnetIpBlocks": {
+	        "Description": "Management subnet comma-delimited list of CIDR blocks",
+	        "Type": "CommaDelimitedList",
+	        "Default": "192.168.0.0/24, 192.168.10.0/24"
+	    },
+	    "UntrustSubnetIpBlocks": {
+	        "Description": "Untrust subnet comma-delimited list of CIDR blocks",
+	        "Type": "CommaDelimitedList",
+	        "Default": "192.168.1.0/24, 192.168.11.0/24"
+	    },
+	    "TrustSubnetIpBlocks": {
+	        "Description": "Trust subnet comma-delimited list of CIDR blocks",
+	        "Type": "CommaDelimitedList",
+	        "Default": "192.168.2.0/24, 192.168.12.0/24"
+	    },
+	    "NATGWSubnetIpBlocks": {
+	        "Description": "AWS NAT Gateway Comma-delimited list of CIDR blocks",
+	        "Type": "CommaDelimitedList",
+	        "Default": "192.168.101.0/24, 192.168.111.0/24"
+	    },
+	    "FWInstanceType": {
+	      "Type": "String",
+	      "Default": "m4.xlarge",
+	      "AllowedValues": [
+	        "c3.xlarge",
+	        "c3.2xlarge",
+	        "c3.4xlarge",
+	        "c4.xlarge",
+	        "c4.2xlarge",
+	        "c4.4xlarge",
+	        "c4.8xlarge",
+	        "m3.xlarge",
+	        "m3.2xlarge",
+	        "m4.xlarge",
+	        "m4.2xlarge",
+	        "m4.4xlarge"
+	      ],
+	      "Description": "Enter the instance type and size for the VM-Series firewall"
+	    },
+	    "FWLicenseType": {
+	      "Type": "String",
+	      "Default": "Bundle1",
+	      "AllowedValues": [
+	        "Bundle1",
+	        "Bundle2",
+	        "BYOL"
+	      ],
+	      "Description": "Enter the license type for the Firewall"
+	    },
+
+	    "S3BucketName": {
+      		"Type" : "String",
+      		"Description": "Enter the name S3 Bucket Name containing the Bootstrap files",
+      		"MinLength" : "3",
+      		"MaxLength" : "120"
+    	}
+  	},
+  	  "Mappings" : {
+  	  	"AWSRegionAMIEC2" : {
+  	  		"us-east-1"  : {"Xenial" : "ami-b46295c9"},
+  	  		"us-east-2"  : {"Xenial" : "ami-f6cef993"},
+  	  		"us-west-1"  : {"Xenial" : "ami-c16862a1"},
+  	  		"us-west-2"  : {"Xenial" : "ami-1c1d9664"},
+  	  		"ca-central-1"  : {"Xenial" : "ami-919b1cf5"},
+  	  		"eu-central-1"  : {"Xenial" : "ami-6283ef0d"},
+  	  		"eu-west-1"  : {"Xenial" : "ami-70054309"},
+  	  		"eu-west-2"  : {"Xenial" : "ami-be4aaed9"},
+  	  		"eu-west-3"  : {"Xenial" : "ami-5563d528"},
+  	  		"ap-northeast-1"  : {"Xenial" : "ami-64612102"},
+  	  		"ap-northeast-2"  : {"Xenial" : "ami-e546eb8b"},
+  	  		"ap-southeast-1"  : {"Xenial" : "ami-8f4f05f3"},
+  	  		"ap-southeast-2"  : {"Xenial" : "ami-ed77b18f"},
+  	  		"sa-east-1"  : {"Xenial" : "ami-4a733826"}
+  	  	         },
+  	  	"AWSRegionArch2AMI"  : {
+  	  		"us-east-1"  : {"Bundle1" : "ami-ce01c0b3", "Bundle2" : "ami-bffd3cc2", "BYOL" : "ami-a2fa3bdf"},
+  	  		"us-east-2"  : {"Bundle1" : "ami-10f3c575", "Bundle2" : "ami-9ef3c5fb", "BYOL" : "ami-11e1d774"},
+  	  		"us-west-1"  : {"Bundle1" : "ami-235b4f43", "Bundle2" : "ami-854551e5", "BYOL" : "ami-a95b4fc9"},
+  	  		"us-west-2"  : {"Bundle1" : "ami-8a22b3f2", "Bundle2" : "ami-9a29b8e2", "BYOL" : "ami-d424b5ac"},
+  	  		"ca-central-1"  : {"Bundle1" : "ami-dd0582b9", "Bundle2" : "ami-57048333", "BYOL" : "ami-64038400"},
+  	  		"eu-central-1"  : {"Bundle1" : "ami-1bbdd574", "Bundle2" : "ami-1ebdd571", "BYOL" : "ami-55bfd73a"},
+  	  		"eu-west-1"  : {"Bundle1" : "ami-edb0fe94", "Bundle2" : "ami-1fb1ff66", "BYOL" : "ami-62b5fb1b"},
+  	  		"eu-west-2"  : {"Bundle1" : "ami-f46a8d93", "Bundle2" : "ami-c4688fa3", "BYOL" : "ami-876a8de0"},
+  	  		"ap-southeast-1"  : {"Bundle1" : "ami-55bced29", "Bundle2" : "ami-36bdec4a", "BYOL" : "ami-27baeb5b"},
+  	  		"ap-southeast-2"  : {"Bundle1" : "ami-aed112cc", "Bundle2" : "ami-add013cf", "BYOL" : "ami-00d61562"},
+  	  		"ap-northeast-2"  : {"Bundle1" : "ami-4eb81420", "Bundle2" : "ami-a8bf13c6", "BYOL" : "ami-49bd1127"},
+  	  		"ap-northeast-1"  : {"Bundle1" : "ami-39662d5f", "Bundle2" : "ami-75652e13", "BYOL" : "ami-57662d31"},
+  	  		"ap-south-1"  : {"Bundle1" : "ami-d385dcbc", "Bundle2" : "ami-ee80d981", "BYOL" : "ami-e780d988"},
+  	  		"sa-east-1"  : {"Bundle1" : "ami-9e0154f2", "Bundle2" : "ami-d80653b4", "BYOL" : "ami-9c0154f0"}
+  	  	},         
+    	"Constants": {
+	      "S3URL": {
+	         "URL1": "https://s3.amazonaws.com"
+	      }
+    	}
+	},
+	  "Metadata" : {
+	    "AWS::CloudFormation::Interface" : {
+	        "ParameterLabels" : {
+	            "VPCName": {"default": "VPC Name"},
+	            "VPCCIDR": {"default": "CIDR Block for the VPC"},
+	            "MgmtSubnetIpBlocks": {"default": "Management Subnet CIDR Block"},
+	            "UntrustSubnetIpBlocks": {"default": "Untrust Subnet CIDR Block"},
+	            "TrustSubnetIpBlocks": {"default": "Trust Subnet CIDR Block"},
+	            "NATGWSubnetIpBlocks": {"default": "NAT Gateway Subnet CIDR Block"},
+	            "WebInstanceType": {"default": "Web Server Instance Size"},
+	            "KeyName": {"default": "Key pair:"},
+	            "SSHLocation": {"default": "SSH From:"},
+	            "NATGatewayAddresses": {"default": "HTTP Access:"},
+	            "ALBExtName": {"default": "External ALB Name"},
+	            "ALBIntName": {"default": "Internal ALB Name"},
+	            "FWInstanceType": {"default": "Firewall Instance Size"},
+	            "S3BucketName": {"default": "Firewall Bootstrap Bucket"},
+	            "VpcAzs": {"default": "Availability Zones"}
+	      },
+	            "ParameterGroups" : [
+	            {
+	            	"Label" : {"default": "VPC Configuration"},
+	            	"Parameters" : ["VPCName", "VpcAzs", "VPCCIDR", "MgmtSubnetIpBlocks", "UntrustSubnetIpBlocks", "TrustSubnetIpBlocks", "NATGWSubnetIpBlocks", "KeyName", "SSHLocation"]
+	            },
+	            {
+	            	"Label" : {"default": "Firewall Configuration"},
+	            	"Parameters" : ["FWLicenseType", "FWInstanceType", "S3BucketName"]
+	            },
+	            {
+	            	"Label" : {"default": "Load Balancer Configuration"},
+	            	"Parameters" : ["ALBExtName", "ALBIntName"]
+	            },
+	            {
+	            	"Label" : {"default": "Web Server Configuration"},
+	            	"Parameters" : ["WebInstanceType"]
+	            }
+	        ]
+	    }
+	  },
+	"Resources": {
+		"VPC" : {
+	      "Type" : "AWS::EC2::VPC",
+	      "Properties" : {
+	        "CidrBlock" : { "Ref" : "VPCCIDR" },
+	        "Tags" : [
+	          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+	          { "Key" : "Network", "Value" : "MGMT" },
+	          { "Key" : "Name", "Value": {"Ref": "VPCName"} }
+	        ]
+	      }
+    	},
+    	"NATGWSubnetAz1" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "0", {"Ref" : "VpcAzs"} ] },
+    	    "MapPublicIpOnLaunch": true,
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "0", {"Ref" : "NATGWSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "NATGW" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "NATGWSubnetAz1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"NATGWSubnetAz2" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "1", {"Ref" : "VpcAzs"} ] },
+    	    "MapPublicIpOnLaunch": true,
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "1", {"Ref" : "NATGWSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "NATGW" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "NATGWSubnetAz2" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"MGMTSubnetAz1" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "0", {"Ref" : "VpcAzs"} ] },
+    	    "MapPublicIpOnLaunch": true,
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "0", {"Ref" : "MgmtSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "MGMT" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "MGMTSubnetAz1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"MGMTSubnetAz2" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "1", {"Ref" : "VpcAzs"} ] },
+    	    "MapPublicIpOnLaunch": true,
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "1", {"Ref" : "MgmtSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "MGMT" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "MGMTSubnetAz2" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"UNTRUSTSubnet1" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "0", {"Ref" : "VpcAzs"} ] },
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "0", {"Ref" : "UntrustSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "UNTRUST" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "UNTRUSTSubnet1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"UNTRUSTSubnet2" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "1", {"Ref" : "VpcAzs"} ] },
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "1", {"Ref" : "UntrustSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "UNTRUST" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "UNTRUSTSubnet2" ] ] }}
+    	    ]
+    	  }, 
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"TRUSTSubnet1" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "0", {"Ref" : "VpcAzs"} ] },
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "0", {"Ref" : "TrustSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "TRUST" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "TRUSTSubnet1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"TRUSTSubnet2" : {
+    	  "Type" : "AWS::EC2::Subnet",
+    	  "Properties" : {
+    	    "AvailabilityZone" : { "Fn::Select" : [ "1", {"Ref" : "VpcAzs"} ] },
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "CidrBlock" : { "Fn::Select" : [ "1", {"Ref" : "TrustSubnetIpBlocks"} ] },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "TRUST" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "TRUSTSubnet2" ] ] }}
+    	    ] 
+    	  } ,
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"sgWideOpen": {
+    	    "Type": "AWS::EC2::SecurityGroup",
+    	    "Properties": {
+    	        "GroupDescription": "Wide open security group",
+    	        "SecurityGroupIngress": [
+    	            {
+    	                "IpProtocol": "-1",
+    	                "CidrIp": "0.0.0.0/0"
+    	            }
+    	        ],
+    	        "SecurityGroupEgress": [
+    	            {
+    	                "IpProtocol": "-1",
+    	                "CidrIp": "0.0.0.0/0"
+    	            }
+    	        ],
+    	        "VpcId" : { "Ref" : "VPC" }
+    	    }
+    	},
+    	"sgJumpbox": {
+    	    "Type": "AWS::EC2::SecurityGroup",
+    	    "Properties": {
+    	        "GroupDescription": "SG for Jumpbox",
+    	        "SecurityGroupIngress": [
+    	            { "IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"},
+    	            { "IpProtocol" : "tcp", "FromPort" : "3389", "ToPort" : "3389", "CidrIp" : "0.0.0.0/0"}
+    	        ],
+    	        "SecurityGroupEgress": [
+    	            {
+    	                "IpProtocol": "-1",
+    	                "CidrIp": "0.0.0.0/0"
+    	            }
+    	        ],
+    	        "VpcId" : { "Ref" : "VPC" }
+    	    }
+    	},
+    	"InternetGateway" : {
+    	  "Type" : "AWS::EC2::InternetGateway",
+    	  "Properties" : {
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "MGMT" },
+    	      { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "InternetGateway" ] ] }}
+    	    ]
+    	  }
+    	},
+    	"GatewayToInternet" : {
+    	   "Type" : "AWS::EC2::VPCGatewayAttachment",
+    	   "Properties" : {
+    	     "VpcId" : { "Ref" : "VPC" },
+    	     "InternetGatewayId" : { "Ref" : "InternetGateway" }
+    	   },
+    	   "DependsOn": [ "InternetGateway" ]
+    	},
+    	"NATGWRouteTableAz1" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "NATGWRouteTableAz1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"NATGWRouteTableAz2" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "NATGWRouteTableAz2" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"NATGWRoute1" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "NATGWRouteTableAz1" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "GatewayId" : { "Ref" : "InternetGateway" }
+    	  },
+    	  "DependsOn": [ "NATGWRouteTableAz1", "GatewayToInternet" ]
+    	},
+    	"NATGWRoute2" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "NATGWRouteTableAz2" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "GatewayId" : { "Ref" : "InternetGateway" }
+    	  },
+    	  "DependsOn": [ "NATGWRouteTableAz2", "GatewayToInternet" ]
+    	},
+    	"NAT1SubnetRouteTableAssociation" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "NATGWSubnetAz1" },
+    	    "RouteTableId" : { "Ref" : "NATGWRouteTableAz1" }
+    	  },
+    	  "DependsOn": [ "NATGWRouteTableAz1", "NATGWSubnetAz1" ]
+    	},
+    	"NAT2SubnetRouteTableAssociation" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "NATGWSubnetAz2" },
+    	    "RouteTableId" : { "Ref" : "NATGWRouteTableAz2" }
+    	  },
+    	  "DependsOn": [ "NATGWRouteTableAz2", "NATGWSubnetAz2" ]
+    	},
+    	"EIP1" : {
+    	   "Type" : "AWS::EC2::EIP",
+    	   "Properties" : {
+    	      "Domain" : "VPC"
+    	   },
+    	   "DependsOn": [ "VPC", "GatewayToInternet", "InternetGateway" ]
+    	},
+    	"EIP2" : {
+    	   "Type" : "AWS::EC2::EIP",
+    	   "Properties" : {
+    	      "Domain" : "VPC"
+    	   },
+    	   "DependsOn": [ "VPC", "GatewayToInternet", "InternetGateway" ]
+    	},
+    	"NAT1" : {
+    	   "Type" : "AWS::EC2::NatGateway",
+    	    "Properties" : {
+    	      "AllocationId" : { "Fn::GetAtt" : ["EIP1", "AllocationId"]},
+    	      "SubnetId" : { "Ref" : "NATGWSubnetAz1"}
+    	   },
+    	   "DependsOn" : [ "VPC", "EIP1", "NATGWSubnetAz1", "GatewayToInternet" ]
+    	},
+    	"NAT2" : {
+    	   "Type" : "AWS::EC2::NatGateway",
+    	    "Properties" : {
+    	      "AllocationId" : { "Fn::GetAtt" : ["EIP2", "AllocationId"]},
+    	      "SubnetId" : { "Ref" : "NATGWSubnetAz2"}
+    	   },
+    	   "DependsOn" : [ "VPC", "EIP2", "NATGWSubnetAz2", "GatewayToInternet" ]
+    	},
+    	"MGMTRouteTableAz1" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "MGMTRouteTableAz1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"MGMTRouteTableAz2" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "MGMTRouteTableAz2" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"MGMTRouteNAT1" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "MGMTRouteTableAz1" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "NatGatewayId" : { "Ref" : "NAT1" }
+    	  },
+    	  "DependsOn": [ "NAT1" ]
+    	},
+    	"MGMTRouteNAT2" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "MGMTRouteTableAz2" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "NatGatewayId" : { "Ref" : "NAT2" }
+    	  },
+    	  "DependsOn": [ "NAT2" ]
+    	},
+    	"MGMTSubnetRouteTableAssociationNAT1" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "MGMTSubnetAz1" },
+    	    "RouteTableId" : { "Ref" : "MGMTRouteTableAz1" }
+    	  },
+    	  "DependsOn": [ "MGMTRouteNAT1", "MGMTSubnetAz1" ]
+    	},
+    	"MGMTSubnetRouteTableAssociationNAT2" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "MGMTSubnetAz2" },
+    	    "RouteTableId" : { "Ref" : "MGMTRouteTableAz2" }
+    	  },
+    	  "DependsOn": [ "MGMTSubnetAz2" ]
+    	},
+    	"UNTRUSTRouteTableAz1" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "UNTRUSTRouteTableAz1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"UNTRUSTRouteTableAz2" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "UNTRUSTRouteTableAz2" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"UNTRUSTRouteNAT1" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "UNTRUSTRouteTableAz1" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "NatGatewayId" : { "Ref" : "NAT1" }
+    	  },
+    	  "DependsOn": [ "NAT1" ]
+    	},
+    	"UNTRUSTRouteNAT2" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "UNTRUSTRouteTableAz2" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "NatGatewayId" : { "Ref" : "NAT2" }
+    	  },
+    	  "DependsOn": [ "NAT2" ]
+    	},
+    	"UNTRUSTSubnetRouteTableAssociationNAT1" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "UNTRUSTSubnet1" },
+    	    "RouteTableId" : { "Ref" : "UNTRUSTRouteTableAz1" }
+    	  },
+    	  "DependsOn": [ "UNTRUSTRouteNAT1", "UNTRUSTSubnet1" ]
+    	},
+    	"UNTRUSTSubnetRouteTableAssociationNAT2" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "UNTRUSTSubnet2" },
+    	    "RouteTableId" : { "Ref" : "UNTRUSTRouteTableAz2" }
+    	  },
+    	  "DependsOn": [ "UNTRUSTRouteNAT2", "UNTRUSTSubnet2" ]
+    	},
+    	"TrustRouteTableAz1" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "TRUST" },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "TrustRouteTableAz1" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"TrustRouteTableAz2" : {
+    	  "Type" : "AWS::EC2::RouteTable",
+    	  "Properties" : {
+    	    "VpcId" : { "Ref" : "VPC" },
+    	    "Tags" : [
+    	      { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+    	      { "Key" : "Network", "Value" : "TRUST" },
+    	      { "Key" : "Name", "Value": { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "TrustRouteTableAz2" ] ] }}
+    	    ]
+    	  },
+    	  "DependsOn": [ "VPC" ]
+    	},
+    	"TrustRouteNAT1" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "TrustRouteTableAz1" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "NatGatewayId" : { "Ref" : "NAT1" }
+    	  },
+    	  "DependsOn": [ "NAT1" ]
+    	},
+    	"TrustRouteNAT2" : {
+    	  "Type" : "AWS::EC2::Route",
+    	  "Properties" : {
+    	    "RouteTableId" : { "Ref" : "TrustRouteTableAz2" },
+    	    "DestinationCidrBlock" : "0.0.0.0/0",
+    	    "NatGatewayId" : { "Ref" : "NAT2" }
+    	  },
+    	  "DependsOn": [ "NAT2" ]
+    	},
+    	"TRUSTSubnetRouteTableAssociation1" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "TRUSTSubnet1" },
+    	    "RouteTableId" : { "Ref" : "TrustRouteTableAz1" }
+    	  },
+    	  "DependsOn": [ "TRUSTSubnet1" ]
+    	},
+    	"TRUSTSubnetRouteTableAssociation2" : {
+    	  "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+    	  "Properties" : {
+    	    "SubnetId" : { "Ref" : "TRUSTSubnet2" },
+    	    "RouteTableId" : { "Ref" : "TrustRouteTableAz2" }
+    	  },
+    	  "DependsOn": [ "TRUSTSubnet2" ]
+    	},
+    	"WebServer1": {
+    	    "Type": "AWS::EC2::Instance",
+    	    "DependsOn": [ "TRUSTSubnet1", "sgWideOpen"],
+    	    "Properties": {
+    	        "InstanceType" : { "Ref" : "WebInstanceType" },
+    	        "Tags" : [
+    	        	{ "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "WbSvr1" ] ] }}
+    	         ],
+    	        "KeyName" : { "Ref" : "KeyName" },
+    	        "ImageId" : {"Fn::FindInMap": [ "AWSRegionAMIEC2", { "Ref": "AWS::Region" },"Xenial"]},
+    	        "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+    	                     "#!/bin/bash\n",
+    	                     "sudo apt-get update -y &&\n",
+    	                     "sudo apt-get install -y apache2 php7.0 libapache2-mod-php7.0 &&\n",
+    	                     "sudo rm -f /var/www/html/index.html &&\n",
+    	                     "sudo wget -O /var/www/html/index.php https://raw.githubusercontent.com/jasonmeurer/showheaders/master/showheaders.php\n"
+    	            ]]}},
+    	        "NetworkInterfaces": [
+    	            {
+    	                "DeviceIndex": "0",
+    	                "GroupSet" : [{ "Ref" : "sgWideOpen" }],
+    	                "SubnetId": {
+    	                    "Ref": "TRUSTSubnet1"
+    	                }
+    	            }
+    	        ]
+    	    }
+    	},
+    	"WebServer2": {
+    	    "Type": "AWS::EC2::Instance",
+    	    "DependsOn": [ "TRUSTSubnet2", "sgWideOpen"],
+    	    "Properties": {
+    	        "InstanceType" : { "Ref" : "WebInstanceType" },
+    	        "Tags" : [
+    	        	{ "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "WbSvr2" ] ] }}
+    	         ],
+    	        "KeyName" : { "Ref" : "KeyName" },
+    	        "ImageId" : {"Fn::FindInMap": [ "AWSRegionAMIEC2", { "Ref": "AWS::Region" },"Xenial"]},
+    	        "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+    	                     "#!/bin/bash\n",
+    	                     "sudo apt-get update -y &&\n",
+    	                     "sudo apt-get install -y apache2 php7.0 libapache2-mod-php7.0 &&\n",
+    	                     "sudo rm -f /var/www/html/index.html &&\n",
+    	                     "sudo wget -O /var/www/html/index.php https://raw.githubusercontent.com/jasonmeurer/showheaders/master/showheaders.php\n"
+    	            ]]}},
+    	        "NetworkInterfaces": [
+    	            {
+    	                "DeviceIndex": "0",
+    	                "GroupSet" : [{ "Ref" : "sgWideOpen" }],
+    	                "SubnetId": {
+    	                    "Ref": "TRUSTSubnet2"
+    	                }
+    	            }
+    	        ]
+    	    }
+    	},
+	    "BootstrapRole": {
+	      "Type": "AWS::IAM::Role",
+	      "Properties": {
+	        "AssumeRolePolicyDocument": {
+	          "Version": "2012-10-17",
+	          "Statement": [
+	            {
+	              "Effect": "Allow",
+	              "Principal": {
+	                "Service": "ec2.amazonaws.com"
+	              },
+	              "Action": "sts:AssumeRole"
+	            }
+	          ]
+	        },
+	        "Path": "/",
+	        "Policies": [
+	          {
+	            "PolicyName": "BootstrapRolePolicy",
+	            "PolicyDocument": {
+	              "Version": "2012-10-17",
+	              "Statement": [
+	                {
+	                  "Effect": "Allow",
+	                  "Action": "s3:ListBucket",
+	                  "Resource": { "Fn::Join": [ "", ["arn:aws:s3:::",{ "Ref": "S3BucketName" }]]
+	                  }
+	                },
+	                {
+	                  "Effect": "Allow",
+	                  "Action": "s3:GetObject",
+	                  "Resource": { "Fn::Join": [ "", [ "arn:aws:s3:::", { "Ref": "S3BucketName" }, "/*" ]]
+	                  }
+	                }
+	              ]
+	            }
+	          }
+	        ]
+	      }
+	    },
+	    "BootstrapInstanceProfile": {
+	      "Type": "AWS::IAM::InstanceProfile",
+	      "Properties": {
+	        "Path": "/",
+	        "Roles": [
+	          {
+	            "Ref": "BootstrapRole"
+	          }
+	        ]
+	      }
+	    },
+	    "FW1ManagementNetworkInterface": {
+	      "Type": "AWS::EC2::NetworkInterface",
+	      "Properties": {
+	        "Description": "AWS FW1 MGMT",
+	        "SubnetId": {
+	          "Ref": "MGMTSubnetAz1"
+	        },
+	        "SourceDestCheck": "false",
+	        "GroupSet": [
+	          {
+	            "Ref": "sgWideOpen"
+	          }
+	        ],
+	        "Tags": [
+	          {
+	            "Key": "Name",
+	            "Value": "AWS FW1 MGMT"
+	          }
+	        ]
+	      },
+	      "DependsOn": [
+	        "sgWideOpen"
+	      ]
+	    },
+	    "FW1UntrustNetworkInterface": {
+	      "Type": "AWS::EC2::NetworkInterface",
+	      "Properties": {
+	        "Description": "AWS FW1 E1/1",
+	        "SubnetId": {
+	          "Ref": "UNTRUSTSubnet1"
+	        },
+	        "SourceDestCheck": "false",
+	        "GroupSet": [
+	          {
+	            "Ref": "sgWideOpen"
+	          }
+	        ],
+	        "Tags": [
+	          {
+	            "Key": "Name",
+	            "Value": "AWS FW1 E1/1"
+	          }
+	        ]
+	      },
+	      "DependsOn": [
+	        "sgWideOpen"
+	      ]
+	    },
+	    "FW1TrustNetworkInterface": {
+	      "Type": "AWS::EC2::NetworkInterface",
+	      "Properties": {
+	        "Description": "AWS FW1 E1/2",
+	        "SubnetId": {
+	          "Ref": "TRUSTSubnet1"
+	        },
+	        "SourceDestCheck": "false",
+	        "GroupSet": [
+	          {
+	            "Ref": "sgWideOpen"
+	          }
+	        ],
+	        "Tags": [
+	          {
+	            "Key": "Name",
+	            "Value": "AWS FW1 E1/2"
+	          }
+	        ]
+	      },
+	      "DependsOn": [
+	        "sgWideOpen"
+	      ]
+	    },
+	    "FW2ManagementNetworkInterface": {
+	      "Type": "AWS::EC2::NetworkInterface",
+	      "Properties": {
+	        "Description": "AWS FW2 MGMT",
+	        "SubnetId": {
+	          "Ref": "MGMTSubnetAz2"
+	        },
+	        "SourceDestCheck": "false",
+	        "GroupSet": [
+	          {
+	            "Ref": "sgWideOpen"
+	          }
+	        ],
+	        "Tags": [
+	          {
+	            "Key": "Name",
+	            "Value": "AWS FW2 MGMT"
+	          }
+	        ]
+	      },
+	      "DependsOn": [
+	        "sgWideOpen"
+	      ]
+	    },
+	    "FW2UntrustNetworkInterface": {
+	      "Type": "AWS::EC2::NetworkInterface",
+	      "Properties": {
+	        "Description": "AWS FW2 E1/1",
+	        "SubnetId": {
+	          "Ref": "UNTRUSTSubnet2"
+	        },
+	        "SourceDestCheck": "false",
+	        "GroupSet": [
+	          {
+	            "Ref": "sgWideOpen"
+	          }
+	        ],
+	        "Tags": [
+	          {
+	            "Key": "Name",
+	            "Value": "AWS FW2 E1/1"
+	          }
+	        ]
+	      },
+	      "DependsOn": [
+	        "sgWideOpen"
+	      ]
+	    },
+	    "FW2TrustNetworkInterface": {
+	      "Type": "AWS::EC2::NetworkInterface",
+	      "Properties": {
+	        "Description": "AWS FW2 E1/2",
+	        "SubnetId": {
+	          "Ref": "TRUSTSubnet2"
+	        },
+	        "SourceDestCheck": "false",
+	        "GroupSet": [
+	          {
+	            "Ref": "sgWideOpen"
+	          }
+	        ],
+	        "Tags": [
+	          {
+	            "Key": "Name",
+	            "Value": "AWS FW2 E1/2"
+	          }
+	        ]
+	      },
+	      "DependsOn": [
+	        "sgWideOpen"
+	      ]
+	    },
+	    "FW1Instance": {
+	      "Type": "AWS::EC2::Instance",
+	      "Properties": {
+	        "DisableApiTermination": "false",
+	        "IamInstanceProfile": {
+	          "Ref": "BootstrapInstanceProfile"
+	        },
+	        "InstanceInitiatedShutdownBehavior": "stop",
+	        "EbsOptimized": "true",
+	        "ImageId" : {"Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" }, {"Ref": "FWLicenseType"}]},
+	        "InstanceType": {
+	          "Ref": "FWInstanceType"
+	        },
+	        "BlockDeviceMappings": [
+	          {
+	            "DeviceName": "/dev/xvda",
+	            "Ebs": {
+	              "VolumeType": "gp2",
+	              "DeleteOnTermination": "true",
+	              "VolumeSize": "60"
+	            }
+	          }
+	        ],
+	        "KeyName": {
+	          "Ref": "KeyName"
+	        },
+	        "Monitoring": "false",
+	        "Tags": [
+	          { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "FW1" ] ] }}
+	        ],
+	        "NetworkInterfaces": [
+	          {
+	            "NetworkInterfaceId": {
+	              "Ref": "FW1UntrustNetworkInterface"
+	            },
+	            "DeviceIndex": 0
+	          },
+	          {
+	            "NetworkInterfaceId": {
+	              "Ref": "FW1ManagementNetworkInterface"
+	            },
+	            "DeviceIndex": 1
+	          },
+	          {
+	            "NetworkInterfaceId": {
+	              "Ref": "FW1TrustNetworkInterface"
+	            },
+	            "DeviceIndex": 2
+	          }
+	        ],
+	        "UserData": {
+	          "Fn::Base64": {
+	            "Fn::Join": [
+	              "",
+	              [
+	                "vmseries-bootstrap-aws-s3bucket=",
+	                {
+	                  "Ref": "S3BucketName"
+	                }
+	              ]
+	            ]
+	          }
+	        }
+	      },
+	      "DependsOn": [
+	        "FW1ManagementNetworkInterface",
+	        "FW1UntrustNetworkInterface",
+	        "FW1TrustNetworkInterface"
+	      ]
+	    },
+	    "FW2Instance": {
+	      "Type": "AWS::EC2::Instance",
+	      "Properties": {
+	        "DisableApiTermination": "false",
+	        "IamInstanceProfile": {
+	          "Ref": "BootstrapInstanceProfile"
+	        },
+	        "InstanceInitiatedShutdownBehavior": "stop",
+	        "EbsOptimized": "true",
+	        "ImageId" : {"Fn::FindInMap": [ "AWSRegionArch2AMI", { "Ref": "AWS::Region" }, {"Ref": "FWLicenseType"}]},
+	        "InstanceType": {
+	          "Ref": "FWInstanceType"
+	        },
+	        "BlockDeviceMappings": [
+	          {
+	            "DeviceName": "/dev/xvda",
+	            "Ebs": {
+	              "VolumeType": "gp2",
+	              "DeleteOnTermination": "true",
+	              "VolumeSize": "60"
+	            }
+	          }
+	        ],
+	        "KeyName": {
+	          "Ref": "KeyName"
+	        },
+	        "Monitoring": "false",
+	        "Tags": [
+	          { "Key" : "Name", "Value" : { "Fn::Join": [ "-", [ { "Ref": "AWS::StackName" },  "FW2" ] ] }}
+	        ],
+	        "NetworkInterfaces": [
+	          {
+	            "NetworkInterfaceId": {
+	              "Ref": "FW2UntrustNetworkInterface"
+	            },
+	            "DeviceIndex": 0
+	          },
+	          {
+	            "NetworkInterfaceId": {
+	              "Ref": "FW2ManagementNetworkInterface"
+	            },
+	            "DeviceIndex": 1
+	          },
+	          {
+	            "NetworkInterfaceId": {
+	              "Ref": "FW2TrustNetworkInterface"
+	            },
+	            "DeviceIndex": 2
+	          }
+	        ],
+	        "UserData": {
+	          "Fn::Base64": {
+	            "Fn::Join": [
+	              "",
+	              [
+	                "vmseries-bootstrap-aws-s3bucket=",
+	                {
+	                  "Ref": "S3BucketName"
+	                }
+	              ]
+	            ]
+	          }
+	        }
+	      },
+	      "DependsOn": [
+	        "FW2ManagementNetworkInterface",
+	        "FW2UntrustNetworkInterface",
+	        "FW2TrustNetworkInterface"
+	      ]
+	    },
+	    "WebServerTargetGroup" : {
+	      "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+	      "DependsOn" : [ "WebServer1", "WebServer2"],
+	      "Properties" : {
+	        "HealthCheckIntervalSeconds" : 11,
+	        "HealthCheckTimeoutSeconds" : 5,
+	        "HealthyThresholdCount" : 2,
+	        "UnhealthyThresholdCount" : 2,
+	        "HealthCheckProtocol" : "HTTP",
+	        "HealthCheckPort" : "traffic-port",
+	        "HealthCheckPath" : "/",
+	        "Targets" : [
+	        	{ "Id": {"Ref" : "WebServer1"}, "Port": 80 },
+	        	{ "Id": {"Ref" : "WebServer2"}, "Port": 80 }
+	        ],
+	        "Matcher" : {
+	            "HttpCode" : "200"
+	        },
+	        "Port" : 80,
+	        "Protocol" : "HTTP",
+	        "VpcId" : { "Ref": "VPC" }
+	      }
+	    },
+	    "InternalLBlistener": {
+	      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+	      "Properties": {
+	        "DefaultActions": [{
+	        "Type": "forward",
+	        "TargetGroupArn": { "Ref": "WebServerTargetGroup" }
+	      }],
+	      "LoadBalancerArn": { "Ref": "InternalLB" },
+	        "Port": "80",
+	        "Protocol": "HTTP"
+	      }
+	    },    
+	    "InternalLB" : {
+	      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+	      "Properties" : {
+	        "Name" : { "Ref" : "ALBIntName" },
+	        "SecurityGroups" : [ { "Ref" : "sgWideOpen" } ],
+	        "Subnets" : [ { "Ref" : "TRUSTSubnet1" }, { "Ref" : "TRUSTSubnet2" } ],
+	        "Scheme" : "internal"
+	      },
+	      "DependsOn": [ "VPC", "GatewayToInternet", "sgWideOpen", "TRUSTSubnet1", "TRUSTSubnet2"]
+	    },
+	    "FWTargetGroup" : {
+	      "Type" : "AWS::ElasticLoadBalancingV2::TargetGroup",
+	      "Properties" : {
+	        "HealthCheckIntervalSeconds" : 11,
+	        "HealthCheckTimeoutSeconds" : 5,
+	        "HealthyThresholdCount" : 2,
+	        "UnhealthyThresholdCount" : 2,
+	        "HealthCheckProtocol" : "HTTP",
+	        "HealthCheckPort" : "80",
+	        "HealthCheckPath" : "/",
+	        "Targets" : [
+	        	{ "Id": {"Ref" : "FW1Instance"}, "Port": 80 },
+	        	{ "Id": {"Ref" : "FW2Instance"}, "Port": 80 }
+	        ],
+	        "Matcher" : {
+	            "HttpCode" : "200"
+	        },
+	        "Port" : 80,
+	        "Protocol" : "HTTP",
+	        "VpcId" : { "Ref": "VPC" }
+	      }
+	    },
+	    "ExternalLBlistener": {
+	      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+	      "Properties": {
+	        "DefaultActions": [{
+	        "Type": "forward",
+	        "TargetGroupArn": { "Ref": "FWTargetGroup" }
+	      }],
+	      "LoadBalancerArn": { "Ref": "ExternalLB" },
+	        "Port": "80",
+	        "Protocol": "HTTP"
+	      }
+	    },    
+	    "ExternalLB" : {
+	      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+	      "Properties" : {
+	        "Name" : { "Ref" : "ALBExtName" },
+	        "SecurityGroups" : [ { "Ref" : "sgWideOpen" } ],
+	        "Subnets" : [ { "Ref" : "NATGWSubnetAz1" }, { "Ref" : "NATGWSubnetAz2" } ],
+	        "Scheme" : "internet-facing"
+	      },
+	      "DependsOn": [ "VPC", "GatewayToInternet", "sgWideOpen", "NATGWSubnetAz1", "NATGWSubnetAz2"]
+	    }
+	},
+	"Outputs" : {
+	  "ExternalLB": {
+	    "Value": { "Ref": "ALBExtName" },
+	    "Description": "Elastic Application Load Balancer (Public) name"
+	  },
+	  "ExtLBDNSName": {
+	    "Value": { "Fn::GetAtt" : ["ExternalLB", "DNSName"] },
+	    "Description": "Elastic Application Load Balancer (Public) DNS name"
+	  },
+	  "IntLBDNSName": {
+	    "Value": { "Fn::GetAtt" : ["InternalLB", "DNSName"] },
+	    "Description": "Elastic Application Load Balancer (Internal) DNS name"
+	  },
+	  "KeyName": {
+	    "Value": { "Ref": "KeyName" },
+	    "Description": "Key Pair you have selected for SSH"
+	  },
+	  "VPCID": {
+	    "Value": { "Ref": "VPC" },
+	    "Description": "VPC ID"
+	  },
+	  "FW1UntrustIP": {
+	    "Value": { "Fn::GetAtt" : ["FW1UntrustNetworkInterface", "PrimaryPrivateIpAddress"] },
+	    "Description": "FW1 Untrust IP"
+	  },
+	  "FW2UntrustIP": {
+	    "Value": { "Fn::GetAtt" : ["FW2UntrustNetworkInterface", "PrimaryPrivateIpAddress"] },
+	    "Description": "FW2 Untrust IP"
+	  },
+	  "FW1ManagementIP": {
+	    "Value": { "Fn::GetAtt" : ["FW1ManagementNetworkInterface", "PrimaryPrivateIpAddress"] },
+	    "Description": "FW1 Management IP"
+	  },
+	  "FW2ManagementIP": {
+	    "Value": { "Fn::GetAtt" : ["FW2ManagementNetworkInterface", "PrimaryPrivateIpAddress"] },
+	    "Description": "FW2 Management IP"
+	  },
+	  "NATGateway1": {
+	    "Value": { "Ref": "EIP1" },
+	    "Description": "NAT Gateway for Internet access"
+	  },
+	  "NATGateway2": {
+	    "Value": { "Ref": "EIP2" },
+	    "Description": "NAT Gateway for Internet access"
+	  }
+	}
+}

@@ -60,4 +60,3 @@ curl -kg -X GET 'https://#Firewall Management IP#/api/?type=commit&cmd=<commit><
 * More cloud templates are available at: http://live.paloaltonetworks.com/cloudtemplate
 
 
-
