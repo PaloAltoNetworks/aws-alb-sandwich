@@ -650,7 +650,7 @@
     	                     "sudo apt-get update -y &&\n",
     	                     "sudo apt-get install -y apache2 php7.0 libapache2-mod-php7.0 &&\n",
     	                     "sudo rm -f /var/www/html/index.html &&\n",
-    	                     "sudo wget -O /var/www/html/index.php https://raw.githubusercontent.com/jasonmeurer/showheaders/master/showheaders.php\n"
+    	                     "sudo wget -O /var/www/html/index.php https://raw.githubusercontent.com/PaloAltoNetworks/aws-alb-sandwich/master/showheaders.php\n"
     	            ]]}},
     	        "NetworkInterfaces": [
     	            {
