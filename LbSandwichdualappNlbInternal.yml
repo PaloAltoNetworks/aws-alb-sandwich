@@ -1,0 +1,1346 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Creates an Load Balancer Sandwich, External LB and Internal NLB, with two
+  firewalls and two web servers
+Parameters:
+  WebInstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - t3.nano
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - t3a.nano
+      - t3a.micro
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3a.xlarge
+      - t3a.2xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - m5.metal
+      - m5a.large
+      - m5a.xlarge
+      - m5a.2xlarge
+      - m5a.4xlarge
+      - m5a.8xlarge
+      - m5a.12xlarge
+      - m5a.16xlarge
+      - m5a.24xlarge
+      - m5ad.large
+      - m5ad.xlarge
+      - m5ad.2xlarge
+      - m5ad.4xlarge
+      - m5ad.12xlarge
+      - m5ad.24xlarge
+      - m5d.large
+      - m5d.xlarge
+      - m5d.2xlarge
+      - m5d.4xlarge
+      - m5d.8xlarge
+      - m5d.12xlarge
+      - m5d.16xlarge
+      - m5d.24xlarge
+      - m5d.metal
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.12xlarge
+      - c5.18xlarge
+      - c5.24xlarge
+      - c5.metal
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5d.9xlarge
+      - c5d.18xlarge
+      - c5n.large
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
+      - c5n.9xlarge
+      - c5n.18xlarge
+      - cc2.8xlarge
+      - cr1.8xlarge
+      - x1.16xlarge
+      - x1.32xlarge
+      - x1e.xlarge
+      - x1e.2xlarge
+      - x1e.4xlarge
+      - x1e.8xlarge
+      - x1e.16xlarge
+      - x1e.32xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.16xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+      - r5.metal
+      - r5a.large
+      - r5a.xlarge
+      - r5a.2xlarge
+      - r5a.4xlarge
+      - r5a.8xlarge
+      - r5a.12xlarge
+      - r5a.16xlarge
+      - r5a.24xlarge
+      - r5ad.large
+      - r5ad.xlarge
+      - r5ad.2xlarge
+      - r5ad.4xlarge
+      - r5ad.12xlarge
+      - r5ad.24xlarge
+      - r5d.large
+      - r5d.xlarge
+      - r5d.2xlarge
+      - r5d.4xlarge
+      - r5d.8xlarge
+      - r5d.12xlarge
+      - r5d.16xlarge
+      - r5d.24xlarge
+      - r5d.metal
+      - p2.xlarge
+      - p2.8xlarge
+      - p2.16xlarge
+      - p3.2xlarge
+      - p3.8xlarge
+      - p3.16xlarge
+      - p3dn.24xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - g3.4xlarge
+      - g3.8xlarge
+      - g3.16xlarge
+      - g3s.xlarge
+      - f1.2xlarge
+      - f1.4xlarge
+      - f1.16xlarge
+      - h1.2xlarge
+      - h1.4xlarge
+      - h1.8xlarge
+      - h1.16xlarge
+      - hs1.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+      - i3.metal
+      - i3en.large
+      - i3en.xlarge
+      - i3en.2xlarge
+      - i3en.3xlarge
+      - i3en.6xlarge
+      - i3en.12xlarge
+      - i3en.24xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - z1d.large
+      - z1d.xlarge
+      - z1d.2xlarge
+      - z1d.3xlarge
+      - z1d.6xlarge
+      - z1d.12xlarge
+      - z1d.metal
+    ConstraintDescription: must be a valid EC2 instance type.
+  KeyName:
+    Description: Amazon EC2 Key Pair
+    Type: 'AWS::EC2::KeyPair::KeyName'
+  VPCCIDR:
+    Type: String
+    Default: 192.168.0.0/16
+    Description: Enter the VPC CIDR that you want to use
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid CIDR range of the form x.x.x.x/x.
+  VpcAzs:
+    Type: 'List<AWS::EC2::AvailabilityZone::Name>'
+    Description: Select 2 AZs
+  MgmtSubnetIpBlocks:
+    Description: Management subnet comma-delimited list of CIDR blocks
+    Type: CommaDelimitedList
+    Default: '192.168.0.0/24, 192.168.10.0/24'
+  UntrustSubnetIpBlocks:
+    Description: Untrust subnet comma-delimited list of CIDR blocks
+    Type: CommaDelimitedList
+    Default: '192.168.1.0/24, 192.168.11.0/24'
+  TrustSubnetIpBlocks:
+    Description: Trust subnet comma-delimited list of CIDR blocks
+    Type: CommaDelimitedList
+    Default: '192.168.2.0/24, 192.168.3.0/24'
+  NATGWSubnetIpBlocks:
+    Description: AWS NAT Gateway Comma-delimited list of CIDR blocks
+    Type: CommaDelimitedList
+    Default: '192.168.100.0/24, 192.168.101.0/24'
+  SGforAdmin:
+    Description: IP info for fw mgmt lockdown
+    Type: String
+    Default: 1.2.3.4/32
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid CIDR range of the form x.x.x.x/x.
+  FirewallAMI:
+    Description: >-
+      Input the firewall AMI ID.
+      https://docs.paloaltonetworks.com/compatibility-matrix/vm-series-firewalls/aws-cft-amazon-machine-images-ami-list
+    Type: 'AWS::EC2::Image::Id'
+  FWInstanceType:
+    Type: String
+    Default: c5.xlarge
+    AllowedValues:
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.18xlarge
+      - c5n.xlarge
+      - c5n.2xlarge
+      - c5n.4xlarge
+      - c5n.9xlarge
+      - c5n.18xlarge
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - m5.24xlarge
+      - m5n.xlarge
+      - m5n.2xlarge
+      - m5n.4xlarge
+      - m5n.8xlarge
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - m3.xlarge
+      - m3.2xlarge
+    Description: Enter the instance type and size for the VM-Series firewall
+  S3BucketName:
+    Type: String
+    Description: Enter the name S3 Bucket Name containing the Bootstrap files
+    MinLength: '3'
+    MaxLength: '120'
+Mappings:
+  AWSRegionAMIEC2:
+    ap-east-1:
+      Xenial: ami-5cdb9c2d
+    ap-northeast-1:
+      Xenial: ami-003c6ed5c5176db19
+    ap-south-1:
+      Xenial: ami-011c09ac5e09ba22f
+    ap-southeast-1:
+      Xenial: ami-0b21b3ea2cb8660a5
+    ca-central-1:
+      Xenial: ami-02da4c4d67205fcc8
+    eu-central-1:
+      Xenial: ami-0257508f40836e6cf
+    eu-north-1:
+      Xenial: ami-0eb04b36ce3c3b0ac
+    eu-west-1:
+      Xenial: ami-01793b684af7a3e2c
+    me-south-1:
+      Xenial: ami-00df020967accef43
+    sa-east-1:
+      Xenial: ami-017555a9eb5076e5f
+    us-east-1:
+      Xenial: ami-04ac550b78324f651
+    us-west-1:
+      Xenial: ami-0798ac7e2b0fb9e75
+    us-gov-west-1:
+      Xenial: ami-50624831
+    us-gov-east-1:
+      Xenial: ami-b57b96c4
+    ap-northeast-2:
+      Xenial: ami-0582405a4f3bf27c9
+    ap-southeast-2:
+      Xenial: ami-09d19bae4dbb07062
+    eu-west-2:
+      Xenial: ami-014ae7e330e2651dc
+    us-east-2:
+      Xenial: ami-0009e532719fe9bff
+    us-west-2:
+      Xenial: ami-02e30ba14d8ffa6e6
+    ap-northeast-3:
+      Xenial: ami-077284ebb02f61464
+    eu-west-3:
+      Xenial: ami-0a3fd389b49c645bf
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterLabels:
+      VPCCIDR:
+        default: CIDR Block for the VPC
+      MgmtSubnetIpBlocks:
+        default: Management Subnet CIDR Block
+      UntrustSubnetIpBlocks:
+        default: Untrust Subnet CIDR Block
+      TrustSubnetIpBlocks:
+        default: Trust Subnet CIDR Block
+      NATGWSubnetIpBlocks:
+        default: NAT Gateway Subnet CIDR Block
+      WebInstanceType:
+        default: Web Server Instance Size
+      KeyName:
+        default: 'Key pair:'
+      FWInstanceType:
+        default: Firewall Instance Size
+      S3BucketName:
+        default: Firewall Bootstrap Bucket
+      VpcAzs:
+        default: Availability Zones
+    ParameterGroups:
+      - Label:
+          default: VPC Configuration
+        Parameters:
+          - VpcAzs
+          - VPCCIDR
+          - MgmtSubnetIpBlocks
+          - UntrustSubnetIpBlocks
+          - TrustSubnetIpBlocks
+          - NATGWSubnetIpBlocks
+          - KeyName
+      - Label:
+          default: Firewall Configuration
+        Parameters:
+          - FWInstanceType
+          - FirewallAMI
+          - S3BucketName
+      - Label:
+          default: Web Server Configuration
+        Parameters:
+          - WebInstanceType
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VPCCIDR
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: MGMT
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - VPC
+  PublicSubnetAz1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '0'
+        - !Ref VpcAzs
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '0'
+        - !Ref NATGWSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: NATGW
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - PublicSubnetAz1
+  PublicSubnetAz2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '1'
+        - !Ref VpcAzs
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '1'
+        - !Ref NATGWSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: NATGW
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - PublicSubnetAz2
+  MGMTSubnetAz1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '0'
+        - !Ref VpcAzs
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '0'
+        - !Ref MgmtSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: MGMT
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - MGMTSubnetAz1
+  MGMTSubnetAz2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '1'
+        - !Ref VpcAzs
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '1'
+        - !Ref MgmtSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: MGMT
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - MGMTSubnetAz2
+  UNTRUSTSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '0'
+        - !Ref VpcAzs
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '0'
+        - !Ref UntrustSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: UNTRUST
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - UNTRUSTSubnet1
+  UNTRUSTSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '1'
+        - !Ref VpcAzs
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '1'
+        - !Ref UntrustSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: UNTRUST
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - UNTRUSTSubnet2
+  TRUSTSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '0'
+        - !Ref VpcAzs
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '0'
+        - !Ref TrustSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: TRUST
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - TRUSTSubnet1
+  TRUSTSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select 
+        - '1'
+        - !Ref VpcAzs
+      VpcId: !Ref VPC
+      CidrBlock: !Select 
+        - '1'
+        - !Ref TrustSubnetIpBlocks
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: TRUST
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - TRUSTSubnet2
+  sgWideOpen:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Wide open security group
+      SecurityGroupIngress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+  SGforlockdown:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: admin lockdown sg
+      SecurityGroupIngress:
+        - IpProtocol: '-1'
+          CidrIp: !Ref SGforAdmin
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: MGMT
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - InternetGateway
+  GatewayToInternet:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  NATGWRouteTableAz1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - NATGWRouteTableAz1
+  NATGWRouteTableAz2:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - NATGWRouteTableAz2
+  NATGWRoute1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref NATGWRouteTableAz1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+    DependsOn:
+      - GatewayToInternet
+  NATGWRoute2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref NATGWRouteTableAz2
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+    DependsOn:
+      - GatewayToInternet
+  NAT1SubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetAz1
+      RouteTableId: !Ref NATGWRouteTableAz1
+  NAT2SubnetRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnetAz2
+      RouteTableId: !Ref NATGWRouteTableAz2
+  EIP1:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+      - InternetGateway
+  EIP2:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+      - InternetGateway
+  EIPfw1:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+      - InternetGateway
+  EIPfw2:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+      - InternetGateway 
+  fw1MgmtEIPAssoc:
+    Type: 'AWS::EC2::EIPAssociation'
+    Properties:
+      AllocationId: !GetAtt 
+        - EIPfw1
+        - AllocationId
+      NetworkInterfaceId: !Ref FW1ManagementNetworkInterface   
+  fw2MgmtEIPAssoc:
+    Type: 'AWS::EC2::EIPAssociation'
+    Properties:
+      AllocationId: !GetAtt 
+        - EIPfw2
+        - AllocationId
+      NetworkInterfaceId: !Ref FW2ManagementNetworkInterface              
+  NAT1:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 
+        - EIP1
+        - AllocationId
+      SubnetId: !Ref PublicSubnetAz1
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+  NAT2:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 
+        - EIP2
+        - AllocationId
+      SubnetId: !Ref PublicSubnetAz2
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+  MGMTRouteTableAz1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - MGMTRouteTableAz1
+  MGMTRouteTableAz2:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - MGMTRouteTableAz2
+  MGMTRouteIGW1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref MGMTRouteTableAz1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  MGMTRouteIGW2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref MGMTRouteTableAz2
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  MGMTSubnetRouteTableAssociationNAT1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref MGMTSubnetAz1
+      RouteTableId: !Ref MGMTRouteTableAz1
+    DependsOn:
+      - MGMTRouteIGW1
+  MGMTSubnetRouteTableAssociationNAT2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref MGMTSubnetAz2
+      RouteTableId: !Ref MGMTRouteTableAz2
+    DependsOn:
+      - MGMTRouteIGW2
+  UNTRUSTRouteTableAz1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - UNTRUSTRouteTableAz1
+  UNTRUSTRouteTableAz2:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - UNTRUSTRouteTableAz2
+  UNTRUSTRouteNAT1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref UNTRUSTRouteTableAz1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NAT1
+  UNTRUSTRouteNAT2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref UNTRUSTRouteTableAz2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NAT2
+  UNTRUSTSubnetRouteTableAssociationNAT1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref UNTRUSTSubnet1
+      RouteTableId: !Ref UNTRUSTRouteTableAz1
+    DependsOn:
+      - UNTRUSTRouteNAT1
+  UNTRUSTSubnetRouteTableAssociationNAT2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref UNTRUSTSubnet2
+      RouteTableId: !Ref UNTRUSTRouteTableAz2
+    DependsOn:
+      - UNTRUSTRouteNAT2
+  TrustRouteTableAz1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: TRUST
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - TrustRouteTableAz1
+  TrustRouteTableAz2:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Application
+          Value: !Ref 'AWS::StackId'
+        - Key: Network
+          Value: TRUST
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - TrustRouteTableAz2
+  TrustRouteNAT1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref TrustRouteTableAz1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NAT1
+  TrustRouteNAT2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref TrustRouteTableAz2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NAT2
+  TRUSTSubnetRouteTableAssociation1:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref TRUSTSubnet1
+      RouteTableId: !Ref TrustRouteTableAz1
+  TRUSTSubnetRouteTableAssociation2:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref TRUSTSubnet2
+      RouteTableId: !Ref TrustRouteTableAz2
+  WebServer1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref WebInstanceType
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - WbSvr1
+      KeyName: !Ref KeyName
+      ImageId: !FindInMap 
+        - AWSRegionAMIEC2
+        - !Ref 'AWS::Region'
+        - Xenial
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash
+            - |
+              sudo apt-get update -y &&
+            - |
+              sudo apt-get install -y apache2 php7.0 libapache2-mod-php7.0 &&
+            - |
+              sudo rm -f /var/www/html/index.html &&
+            - >
+              sudo wget -O /var/www/html/index.php
+              https://raw.githubusercontent.com/PaloAltoNetworks/aws-alb-sandwich/master/showheaders.php
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          GroupSet:
+            - !Ref sgWideOpen
+          SubnetId: !Ref TRUSTSubnet1
+  WebServer2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref WebInstanceType
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - WbSvr2
+      KeyName: !Ref KeyName
+      ImageId: !FindInMap 
+        - AWSRegionAMIEC2
+        - !Ref 'AWS::Region'
+        - Xenial
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - |
+              #!/bin/bash
+            - |
+              sudo apt-get update -y &&
+            - |
+              sudo apt-get install -y apache2 php7.0 libapache2-mod-php7.0 &&
+            - |
+              sudo rm -f /var/www/html/index.html &&
+            - >
+              sudo wget -O /var/www/html/index.php
+              https://raw.githubusercontent.com/jasonmeurer/showheaders/master/showheaders.php
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          GroupSet:
+            - !Ref sgWideOpen
+          SubnetId: !Ref TRUSTSubnet2
+  BootstrapRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: BootstrapRolePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 's3:ListBucket'
+                Resource: !Join 
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref S3BucketName
+              - Effect: Allow
+                Action: 's3:GetObject'
+                Resource: !Join 
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref S3BucketName
+                    - /*
+  BootstrapInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref BootstrapRole
+  FW1ManagementNetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      Description: AWS FW1 MGMT
+      SubnetId: !Ref MGMTSubnetAz1
+      SourceDestCheck: false
+      GroupSet:
+        - !Ref SGforlockdown
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - fw1MgmtInt
+  FW1UntrustNetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      Description: AWS FW1 E1/1
+      SubnetId: !Ref UNTRUSTSubnet1
+      SourceDestCheck: false
+      GroupSet:
+        - !Ref sgWideOpen
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - fw1UntrustInt
+  FW1TrustNetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      Description: AWS FW1 E1/2
+      SubnetId: !Ref TRUSTSubnet1
+      SourceDestCheck: false
+      GroupSet:
+        - !Ref sgWideOpen
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - fw1TrustInt
+  FW2ManagementNetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      Description: AWS FW2 MGMT
+      SubnetId: !Ref MGMTSubnetAz2
+      SourceDestCheck: false
+      GroupSet:
+        - !Ref SGforlockdown
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - fw2MgmtInt
+  FW2UntrustNetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      Description: AWS FW2 E1/1
+      SubnetId: !Ref UNTRUSTSubnet2
+      SourceDestCheck: false
+      GroupSet:
+        - !Ref sgWideOpen
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - fw2UntrustInt
+  FW2TrustNetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      Description: AWS FW2 E1/2
+      SubnetId: !Ref TRUSTSubnet2
+      SourceDestCheck: false
+      GroupSet:
+        - !Ref sgWideOpen
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - fw2TrustInt
+  FW1Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      DisableApiTermination: false
+      IamInstanceProfile: !Ref BootstrapInstanceProfile
+      InstanceInitiatedShutdownBehavior: stop
+      EbsOptimized: true
+      ImageId: !Ref FirewallAMI
+      InstanceType: !Ref FWInstanceType
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 60
+      KeyName: !Ref KeyName
+      Monitoring: false
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - FW1
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref FW1UntrustNetworkInterface
+          DeviceIndex: '0'
+        - NetworkInterfaceId: !Ref FW1ManagementNetworkInterface
+          DeviceIndex: '1'
+        - NetworkInterfaceId: !Ref FW1TrustNetworkInterface
+          DeviceIndex: '2'
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - vmseries-bootstrap-aws-s3bucket=
+            - !Ref S3BucketName
+  FW2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      DisableApiTermination: false
+      IamInstanceProfile: !Ref BootstrapInstanceProfile
+      InstanceInitiatedShutdownBehavior: stop
+      EbsOptimized: true
+      ImageId: !Ref FirewallAMI
+      InstanceType: !Ref FWInstanceType
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 60
+      KeyName: !Ref KeyName
+      Monitoring: false
+      Tags:
+        - Key: Name
+          Value: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - FW2
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref FW2UntrustNetworkInterface
+          DeviceIndex: '0'
+        - NetworkInterfaceId: !Ref FW2ManagementNetworkInterface
+          DeviceIndex: '1'
+        - NetworkInterfaceId: !Ref FW2TrustNetworkInterface
+          DeviceIndex: '2'
+      UserData: !Base64 
+        'Fn::Join':
+          - ''
+          - - vmseries-bootstrap-aws-s3bucket=
+            - !Ref S3BucketName
+  WebServerTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckProtocol: TCP
+      HealthCheckPort: traffic-port
+      Targets:
+        - Id: !Ref WebServer1
+          Port: 80
+        - Id: !Ref WebServer2
+          Port: 80
+      Port: 80
+      Protocol: TCP
+      VpcId: !Ref VPC
+  WebServerTargetGroup2:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckProtocol: TCP
+      HealthCheckPort: traffic-port
+      Targets:
+        - Id: !Ref WebServer1
+          Port: 80
+        - Id: !Ref WebServer2
+          Port: 80
+      Port: 80
+      Protocol: TCP
+      VpcId: !Ref VPC      
+  InternalLBlistener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref WebServerTargetGroup
+      LoadBalancerArn: !Ref InternalLB
+      Port: 80
+      Protocol: TCP
+  InternalLB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - IntLB1
+      Subnets:
+        - !Ref TRUSTSubnet1
+        - !Ref TRUSTSubnet2
+      Scheme: internal
+      Type: network
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+      - sgWideOpen
+  InternalLBlistener2:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref WebServerTargetGroup2
+      LoadBalancerArn: !Ref InternalLB2
+      Port: 80
+      Protocol: TCP
+  InternalLB2:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - IntLB2
+      Subnets:
+        - !Ref TRUSTSubnet1
+        - !Ref TRUSTSubnet2
+      Scheme: internal
+      Type: network
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+      - sgWideOpen      
+  FWTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 11
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: '881'
+      HealthCheckPath: /
+      Targets:
+        - Id: !Ref FW1Instance
+          Port: 881
+        - Id: !Ref FW2Instance
+          Port: 881
+      Matcher:
+        HttpCode: '200'
+      Port: 881
+      Protocol: HTTP
+      VpcId: !Ref VPC
+  FWTargetGroup2:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 11
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: '882'
+      HealthCheckPath: /
+      Targets:
+        - Id: !Ref FW1Instance
+          Port: 882
+        - Id: !Ref FW2Instance
+          Port: 882
+      Matcher:
+        HttpCode: '200'
+      Port: 882
+      Protocol: HTTP
+      VpcId: !Ref VPC      
+  ExternalLBlistener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref FWTargetGroup
+      LoadBalancerArn: !Ref ExternalLB
+      Port: 80
+      Protocol: HTTP
+  ExternalLB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - ExtLB1
+      SecurityGroups:
+        - !Ref sgWideOpen
+      Subnets:
+        - !Ref PublicSubnetAz1
+        - !Ref PublicSubnetAz2
+      Scheme: internet-facing
+    DependsOn:
+      - VPC
+      - GatewayToInternet
+
+  ExternalLBlistener2:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref FWTargetGroup2
+      LoadBalancerArn: !Ref ExternalLB2
+      Port: 80
+      Protocol: HTTP
+  ExternalLB2:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Name: !Join 
+            - '-'
+            - - !Ref 'AWS::StackName'
+              - ExtLB2
+      SecurityGroups:
+        - !Ref sgWideOpen
+      Subnets:
+        - !Ref PublicSubnetAz1
+        - !Ref PublicSubnetAz2
+      Scheme: internet-facing
+    DependsOn:
+      - VPC
+      - GatewayToInternet      
+Outputs:
+  ExtLBDNSName:
+    Value: !GetAtt 
+      - ExternalLB
+      - DNSName
+    Description: First Elastic Application Load Balancer (Public) DNS name
+  ExtLB2DNSName:
+    Value: !GetAtt 
+      - ExternalLB2
+      - DNSName
+    Description: Second Elastic Application Load Balancer (Public) DNS name    
+  IntLBDNSName:
+    Value: !GetAtt 
+      - InternalLB
+      - DNSName
+    Description: First Elastic Network Load Balancer (Internal) DNS name
+  IntLB2DNSName:
+    Value: !GetAtt 
+      - InternalLB2
+      - DNSName
+    Description: Second Elastic Network Load Balancer (Internal) DNS name    
+  KeyName:
+    Value: !Ref KeyName
+    Description: Key Pair you have selected for SSH
+  VPCID:
+    Value: !Ref VPC
+    Description: VPC ID
+  FW1UntrustIP:
+    Value: !GetAtt 
+      - FW1UntrustNetworkInterface
+      - PrimaryPrivateIpAddress
+    Description: FW1 Untrust IP
+  FW2UntrustIP:
+    Value: !GetAtt 
+      - FW2UntrustNetworkInterface
+      - PrimaryPrivateIpAddress
+    Description: FW2 Untrust IP
+  FW1ManagementIP:
+    Value: !GetAtt 
+      - FW1ManagementNetworkInterface
+      - PrimaryPrivateIpAddress
+    Description: FW1 Management IP
+  FW2ManagementIP:
+    Value: !GetAtt 
+      - FW2ManagementNetworkInterface
+      - PrimaryPrivateIpAddress
+    Description: FW2 Management IP
+  fw1Mgmt:
+    Value: !Ref EIPfw1
+    Description: Firewall 1 EIP
+  fw2Mgmt:
+    Value: !Ref EIPfw2
+    Description: Firewall 2 EIP     
+  NATGateway1:
+    Value: !Ref EIP1
+    Description: NAT Gateway for Internet access
+  NATGateway2:
+    Value: !Ref EIP2
+    Description: NAT Gateway for Internet access
+ 
