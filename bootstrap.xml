@@ -380,7 +380,7 @@
             <dhcp-client>
               <send-hostname>yes</send-hostname>
               <send-client-id>no</send-client-id>
-              <accept-dhcp-hostname>no</accept-dhcp-hostname>
+              <accept-dhcp-hostname>yes</accept-dhcp-hostname>
               <accept-dhcp-domain>no</accept-dhcp-domain>
             </dhcp-client>
           </type>
