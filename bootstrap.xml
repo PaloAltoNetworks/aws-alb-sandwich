@@ -584,10 +584,10 @@
           </import>
           <address>
             <entry name="lb-fqdn1">
-              <fqdn>www.paloaltonetworks.com</fqdn>
+              <fqdn>ilb1.fqdn</fqdn>
             </entry>
             <entry name="lb-fqdn2">
-              <fqdn>www.paloaltonetworks.com</fqdn>
+              <fqdn>ilb2.fqdn</fqdn>
             </entry>
           </address>
         </entry>
